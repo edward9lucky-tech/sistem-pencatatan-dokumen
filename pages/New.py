@@ -3,8 +3,47 @@ import pandas as pd
 import os
 import time
 
-# Konfigurasi Halaman Utama
-st.set_page_config(page_title="Sistem Pencatatan Dokumen & Inventaris", layout="wide")
+# Konfigurasi Halaman Utama - MOBILE RESPONSIVE
+st.set_page_config(
+    page_title="Sistem Pencatatan Dokumen & Inventaris",
+    layout="wide",
+    initial_sidebar_state="collapsed"
+)
+
+# Custom CSS untuk mobile responsif
+st.markdown("""
+    <style>
+        /* Mobile responsiveness */
+        @media (max-width: 768px) {
+            .block-container {
+                padding: 0.5rem;
+            }
+            [data-testid="column"] {
+                padding: 0.25rem !important;
+            }
+            .stDataFrame {
+                font-size: 12px;
+            }
+            button {
+                font-size: 14px !important;
+                padding: 0.25rem 0.5rem !important;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 20px !important;
+            }
+            h2 {
+                font-size: 16px !important;
+            }
+            .stButton button {
+                width: 100% !important;
+                font-size: 12px !important;
+            }
+        }
+    </style>
+""", unsafe_allow_html=True)
 
 file_data = "data_penyimpanan.xlsx"
 FOLDER_UPLOAD = "uploads"
@@ -63,61 +102,107 @@ def render_saved_data():
         st.info("Belum ada data tersimpan.")
         return
 
-    table_columns = st.columns([1.2, 2.5, 2.8, 1.8, 1.6, 2.5, 2.8])
-    table_headers = [
-        "Nomor Dokumen", "Perihal", "Keterangan", "Oleh",
-        "Tanggal", "Foto_Berkas", "Action"
-    ]
-    for header_column, header in zip(table_columns, table_headers):
-        header_column.markdown(f"**{header}**")
-    st.divider()
-
-    for i, row in df_tampil.iterrows():
-        document_columns = st.columns([1.2, 2.5, 2.8, 1.8, 1.6, 2.5, 2.8])
-        document_columns[0].write(str(row.get('Nomor Dokumen', '')))
-        document_columns[1].write(str(row.get('Perihal', '')))
-        document_columns[2].write(str(row.get('Keterangan', '')))
-        document_columns[3].write(str(row.get('Oleh', '')))
-        document_columns[4].write(str(row.get('Tanggal', '')))
-        foto_path = str(row.get("Foto_Berkas", '')).strip()
-        document_columns[5].write(foto_path if foto_path not in ('', 'nan', 'None') else '-')
-
-        action_columns = document_columns[6].columns(3)
-        with action_columns[0]:
-            # Tombol view SELALU ditampilkan, dengan validasi lebih dalam
-            if foto_path and foto_path not in ('nan', 'None', ''):
-                if os.path.exists(foto_path):
-                    if st.button("👁️", key=f"view_{i}", help="Lihat Foto Berkas", use_container_width=True):
-                        st.session_state.modal_image = (foto_path, f"Berkas Dokumen: {row['Nomor Dokumen']}")
-                else:
-                    # File tidak ditemukan tapi path ada
-                    st.button("⚠️", key=f"view_not_found_{i}", help="File tidak ditemukan", disabled=True, use_container_width=True)
-            else:
-                st.button("✕", key=f"view_empty_{i}", help="Tidak ada file", disabled=True, use_container_width=True)
-                
-        with action_columns[1]:
-            if st.button("✏️", key=f"edit_{i}", help="Edit Data", use_container_width=True):
-                st.session_state.edit_index = i
-                st.session_state.next_user_menu = "Tambah Data Baru"
-                st.rerun()
-        with action_columns[2]:
-            if st.button("🗑️", key=f"del_{i}", help="Hapus Data", use_container_width=True):
-                df_tampil = df_tampil.drop(i).reset_index(drop=True)
-                df_tampil.to_excel(file_data, index=False)
-                st.success("Data berhasil dihapus!")
-                time.sleep(1)
-                st.rerun()
-        
-        # Tampilkan gambar langsung di bawah baris jika modal_image sesuai dengan row ini
-        if st.session_state.modal_image and st.session_state.modal_image[1] == f"Berkas Dokumen: {row['Nomor Dokumen']}":
+    # Mobile-responsive: Show as cards on mobile
+    if st.session_state.get('is_mobile', False):
+        for i, row in df_tampil.iterrows():
             with st.container(border=True):
-                st.image(st.session_state.modal_image[0], caption=st.session_state.modal_image[1], use_container_width=True)
-                if st.button("✕ Tutup", key=f"close_image_{i}", use_container_width=True):
-                    st.session_state.modal_image = None
+                st.write(f"**📄 {row.get('Nomor Dokumen', 'N/A')}**")
+                st.write(f"**Perihal:** {row.get('Perihal', '')}")
+                st.write(f"**Keterangan:** {row.get('Keterangan', '')}")
+                st.write(f"**Oleh:** {row.get('Oleh', '')}")
+                st.write(f"**Tanggal:** {row.get('Tanggal', '')}")
+                
+                foto_path = str(row.get("Foto_Berkas", '')).strip()
+                st.write(f"**Foto:** {foto_path if foto_path not in ('', 'nan', 'None') else '-'}")
+                
+                # Action buttons
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    if foto_path and foto_path not in ('nan', 'None', ''):
+                        if os.path.exists(foto_path):
+                            if st.button("👁️ Lihat", key=f"view_{i}", use_container_width=True):
+                                st.session_state.modal_image = (foto_path, f"Berkas Dokumen: {row['Nomor Dokumen']}")
+                        else:
+                            st.button("⚠️", key=f"view_not_found_{i}", disabled=True, use_container_width=True)
+                    else:
+                        st.button("✕", key=f"view_empty_{i}", disabled=True, use_container_width=True)
+                
+                with col2:
+                    if st.button("✏️ Edit", key=f"edit_{i}", use_container_width=True):
+                        st.session_state.edit_index = i
+                        st.session_state.next_user_menu = "Tambah Data Baru"
+                        st.rerun()
+                
+                with col3:
+                    if st.button("🗑️ Hapus", key=f"del_{i}", use_container_width=True):
+                        df_tampil = df_tampil.drop(i).reset_index(drop=True)
+                        df_tampil.to_excel(file_data, index=False)
+                        st.success("Data berhasil dihapus!")
+                        time.sleep(1)
+                        st.rerun()
+                
+                # Tampilkan gambar langsung di bawah baris jika modal_image sesuai dengan row ini
+                if st.session_state.modal_image and st.session_state.modal_image[1] == f"Berkas Dokumen: {row['Nomor Dokumen']}":
+                    with st.container(border=True):
+                        st.image(st.session_state.modal_image[0], caption=st.session_state.modal_image[1], use_container_width=True)
+                        if st.button("✕ Tutup", key=f"close_image_{i}", use_container_width=True):
+                            st.session_state.modal_image = None
+                            st.rerun()
+    else:
+        # Desktop view - Table
+        table_columns = st.columns([1.2, 2.5, 2.8, 1.8, 1.6, 2.5, 2.8])
+        table_headers = [
+            "Nomor Dokumen", "Perihal", "Keterangan", "Oleh",
+            "Tanggal", "Foto_Berkas", "Action"
+        ]
+        for header_column, header in zip(table_columns, table_headers):
+            header_column.markdown(f"**{header}**")
+        st.divider()
+
+        for i, row in df_tampil.iterrows():
+            document_columns = st.columns([1.2, 2.5, 2.8, 1.8, 1.6, 2.5, 2.8])
+            document_columns[0].write(str(row.get('Nomor Dokumen', '')))
+            document_columns[1].write(str(row.get('Perihal', '')))
+            document_columns[2].write(str(row.get('Keterangan', '')))
+            document_columns[3].write(str(row.get('Oleh', '')))
+            document_columns[4].write(str(row.get('Tanggal', '')))
+            foto_path = str(row.get("Foto_Berkas", '')).strip()
+            document_columns[5].write(foto_path if foto_path not in ('', 'nan', 'None') else '-')
+
+            action_columns = document_columns[6].columns(3)
+            with action_columns[0]:
+                if foto_path and foto_path not in ('nan', 'None', ''):
+                    if os.path.exists(foto_path):
+                        if st.button("👁️", key=f"view_{i}", help="Lihat Foto Berkas", use_container_width=True):
+                            st.session_state.modal_image = (foto_path, f"Berkas Dokumen: {row['Nomor Dokumen']}")
+                    else:
+                        st.button("⚠️", key=f"view_not_found_{i}", help="File tidak ditemukan", disabled=True, use_container_width=True)
+                else:
+                    st.button("✕", key=f"view_empty_{i}", help="Tidak ada file", disabled=True, use_container_width=True)
+                    
+            with action_columns[1]:
+                if st.button("✏️", key=f"edit_{i}", help="Edit Data", use_container_width=True):
+                    st.session_state.edit_index = i
+                    st.session_state.next_user_menu = "Tambah Data Baru"
                     st.rerun()
-            st.divider()
-        else:
-            st.divider()
+            with action_columns[2]:
+                if st.button("🗑️", key=f"del_{i}", help="Hapus Data", use_container_width=True):
+                    df_tampil = df_tampil.drop(i).reset_index(drop=True)
+                    df_tampil.to_excel(file_data, index=False)
+                    st.success("Data berhasil dihapus!")
+                    time.sleep(1)
+                    st.rerun()
+            
+            # Tampilkan gambar langsung di bawah baris jika modal_image sesuai dengan row ini
+            if st.session_state.modal_image and st.session_state.modal_image[1] == f"Berkas Dokumen: {row['Nomor Dokumen']}":
+                with st.container(border=True):
+                    st.image(st.session_state.modal_image[0], caption=st.session_state.modal_image[1], use_container_width=True)
+                    if st.button("✕ Tutup", key=f"close_image_{i}", use_container_width=True):
+                        st.session_state.modal_image = None
+                        st.rerun()
+                st.divider()
+            else:
+                st.divider()
 
 # Sidebar Navigasi / Info Pengguna
 st.sidebar.title(f"Halo, {st.session_state.get('username', 'User')}!")
@@ -158,87 +243,155 @@ if current_role.lower() == 'superadmin':
         if df_admin_data.empty:
             st.info("Belum ada data dokumen yang diinput user.")
         else:
-            table_columns = st.columns([1.2, 2.5, 2.8, 1.8, 1.6, 2.5, 2.8])
-            table_headers = [
-                "Nomor Dokumen", "Perihal", "Keterangan", "Oleh",
-                "Tanggal", "Foto_Berkas", "Action"
-            ]
-            for header_column, header in zip(table_columns, table_headers):
-                header_column.markdown(f"**{header}**")
-            st.divider()
+            # Mobile-responsive: Show as cards on mobile
+            if st.session_state.get('is_mobile', False):
+                for data_idx, data_row in df_admin_data.iterrows():
+                    if st.session_state.admin_edit_index == data_idx:
+                        with st.form(f"admin_edit_data_{data_idx}"):
+                            edited_date = st.text_input("Tanggal", value=str(data_row.get('Tanggal', '')))
+                            edited_number = st.text_input("Nomor/Kode Dokumen", value=str(data_row.get('Nomor Dokumen', '')))
+                            edited_subject = st.text_input("Perihal / Nama Barang", value=str(data_row.get('Perihal', '')))
+                            edited_description = st.text_area("Keterangan", value=str(data_row.get('Keterangan', '')))
+                            save_document = st.form_submit_button("Simpan perubahan", type="primary")
 
-            for data_idx, data_row in df_admin_data.iterrows():
-                if st.session_state.admin_edit_index == data_idx:
-                    with st.form(f"admin_edit_data_{data_idx}"):
-                        edited_date = st.text_input("Tanggal", value=str(data_row.get('Tanggal', '')))
-                        edited_number = st.text_input("Nomor/Kode Dokumen", value=str(data_row.get('Nomor Dokumen', '')))
-                        edited_subject = st.text_input("Perihal / Nama Barang", value=str(data_row.get('Perihal', '')))
-                        edited_description = st.text_area("Keterangan", value=str(data_row.get('Keterangan', '')))
-                        save_document = st.form_submit_button("Simpan perubahan", type="primary")
-
-                    if save_document:
-                        if not edited_number.strip() or not edited_subject.strip():
-                            st.error("Nomor Dokumen dan Perihal wajib diisi.")
-                        else:
-                            df_admin_data.loc[data_idx, 'Tanggal'] = edited_date.strip()
-                            df_admin_data.loc[data_idx, 'Nomor Dokumen'] = edited_number.strip()
-                            df_admin_data.loc[data_idx, 'Perihal'] = edited_subject.strip()
-                            df_admin_data.loc[data_idx, 'Keterangan'] = edited_description.strip()
-                            df_admin_data.to_excel(file_data, index=False)
-                            st.session_state.admin_edit_index = None
-                            st.success("Data dokumen berhasil diperbarui.")
-                            time.sleep(0.5)
-                            st.rerun()
-
-                    if st.button("Batal edit", key=f"cancel_admin_edit_{data_idx}"):
-                        st.session_state.admin_edit_index = None
-                        st.rerun()
-                else:
-                    document_columns = st.columns([1.2, 2.5, 2.8, 1.8, 1.6, 2.5, 2.8])
-                    document_columns[0].write(str(data_row.get('Nomor Dokumen', '')))
-                    document_columns[1].write(str(data_row.get('Perihal', '')))
-                    document_columns[2].write(str(data_row.get('Keterangan', '')))
-                    document_columns[3].write(str(data_row.get('Oleh', '')))
-                    document_columns[4].write(str(data_row.get('Tanggal', '')))
-                    
-                    # Tampilkan foto_berkas dengan lebih baik
-                    foto_path_admin = str(data_row.get('Foto_Berkas', '')).strip()
-                    document_columns[5].write(foto_path_admin if foto_path_admin not in ('', 'nan', 'None') else '-')
-                    
-                    action_columns = document_columns[6].columns(3)
-                    with action_columns[0]:
-                        # Tombol view SELALU ditampilkan untuk admin
-                        if foto_path_admin and foto_path_admin not in ('nan', 'None', ''):
-                            if os.path.exists(foto_path_admin):
-                                if st.button("👁️", key=f"admin_view_{data_idx}", help="Lihat Foto Berkas", use_container_width=True):
-                                    st.session_state.modal_image = (foto_path_admin, f"Berkas Dokumen: {data_row['Nomor Dokumen']}")
+                        if save_document:
+                            if not edited_number.strip() or not edited_subject.strip():
+                                st.error("Nomor Dokumen dan Perihal wajib diisi.")
                             else:
-                                st.button("⚠️", key=f"admin_view_not_found_{data_idx}", help="File tidak ditemukan", disabled=True, use_container_width=True)
-                        else:
-                            st.button("✕", key=f"admin_view_empty_{data_idx}", help="Tidak ada file", disabled=True, use_container_width=True)
-                            
-                    with action_columns[1]:
-                        if st.button("✏️", key=f"admin_edit_{data_idx}", help="Edit Data", use_container_width=True):
-                            st.session_state.admin_edit_index = data_idx
-                            st.rerun()
-                    with action_columns[2]:
-                        if st.button("🗑️", key=f"admin_delete_{data_idx}", help="Hapus Data", use_container_width=True):
-                            df_admin_data = df_admin_data.drop(index=data_idx).reset_index(drop=True)
-                            df_admin_data.to_excel(file_data, index=False)
-                            st.success("Data dokumen berhasil dihapus.")
-                            time.sleep(0.5)
-                            st.rerun()
-                    
-                    # Tampilkan gambar langsung di bawah baris jika modal_image sesuai dengan row ini
-                    if st.session_state.modal_image and st.session_state.modal_image[1] == f"Berkas Dokumen: {data_row['Nomor Dokumen']}":
-                        with st.container(border=True):
-                            st.image(st.session_state.modal_image[0], caption=st.session_state.modal_image[1], use_container_width=True)
-                            if st.button("✕ Tutup", key=f"close_admin_image_{data_idx}", use_container_width=True):
-                                st.session_state.modal_image = None
+                                df_admin_data.loc[data_idx, 'Tanggal'] = edited_date.strip()
+                                df_admin_data.loc[data_idx, 'Nomor Dokumen'] = edited_number.strip()
+                                df_admin_data.loc[data_idx, 'Perihal'] = edited_subject.strip()
+                                df_admin_data.loc[data_idx, 'Keterangan'] = edited_description.strip()
+                                df_admin_data.to_excel(file_data, index=False)
+                                st.session_state.admin_edit_index = None
+                                st.success("Data dokumen berhasil diperbarui.")
+                                time.sleep(0.5)
                                 st.rerun()
-                        st.divider()
+
+                        if st.button("Batal edit", key=f"cancel_admin_edit_{data_idx}"):
+                            st.session_state.admin_edit_index = None
+                            st.rerun()
                     else:
-                        st.divider()
+                        with st.container(border=True):
+                            st.write(f"**📄 {data_row.get('Nomor Dokumen', 'N/A')}**")
+                            st.write(f"**Perihal:** {data_row.get('Perihal', '')}")
+                            st.write(f"**Keterangan:** {data_row.get('Keterangan', '')}")
+                            st.write(f"**Oleh:** {data_row.get('Oleh', '')}")
+                            st.write(f"**Tanggal:** {data_row.get('Tanggal', '')}")
+                            
+                            foto_path_admin = str(data_row.get('Foto_Berkas', '')).strip()
+                            st.write(f"**Foto:** {foto_path_admin if foto_path_admin not in ('', 'nan', 'None') else '-'}")
+                            
+                            col1, col2, col3 = st.columns(3)
+                            with col1:
+                                if foto_path_admin and foto_path_admin not in ('nan', 'None', ''):
+                                    if os.path.exists(foto_path_admin):
+                                        if st.button("👁️ Lihat", key=f"admin_view_{data_idx}", use_container_width=True):
+                                            st.session_state.modal_image = (foto_path_admin, f"Berkas Dokumen: {data_row['Nomor Dokumen']}")
+                                    else:
+                                        st.button("⚠️", key=f"admin_view_not_found_{data_idx}", disabled=True, use_container_width=True)
+                                else:
+                                    st.button("✕", key=f"admin_view_empty_{data_idx}", disabled=True, use_container_width=True)
+                            
+                            with col2:
+                                if st.button("✏️ Edit", key=f"admin_edit_{data_idx}", use_container_width=True):
+                                    st.session_state.admin_edit_index = data_idx
+                                    st.rerun()
+                            
+                            with col3:
+                                if st.button("🗑️ Hapus", key=f"admin_delete_{data_idx}", use_container_width=True):
+                                    df_admin_data = df_admin_data.drop(index=data_idx).reset_index(drop=True)
+                                    df_admin_data.to_excel(file_data, index=False)
+                                    st.success("Data dokumen berhasil dihapus.")
+                                    time.sleep(0.5)
+                                    st.rerun()
+                            
+                            if st.session_state.modal_image and st.session_state.modal_image[1] == f"Berkas Dokumen: {data_row['Nomor Dokumen']}":
+                                with st.container(border=True):
+                                    st.image(st.session_state.modal_image[0], caption=st.session_state.modal_image[1], use_container_width=True)
+                                    if st.button("✕ Tutup", key=f"close_admin_image_{data_idx}", use_container_width=True):
+                                        st.session_state.modal_image = None
+                                        st.rerun()
+            else:
+                # Desktop table view
+                table_columns = st.columns([1.2, 2.5, 2.8, 1.8, 1.6, 2.5, 2.8])
+                table_headers = [
+                    "Nomor Dokumen", "Perihal", "Keterangan", "Oleh",
+                    "Tanggal", "Foto_Berkas", "Action"
+                ]
+                for header_column, header in zip(table_columns, table_headers):
+                    header_column.markdown(f"**{header}**")
+                st.divider()
+
+                for data_idx, data_row in df_admin_data.iterrows():
+                    if st.session_state.admin_edit_index == data_idx:
+                        with st.form(f"admin_edit_data_{data_idx}"):
+                            edited_date = st.text_input("Tanggal", value=str(data_row.get('Tanggal', '')))
+                            edited_number = st.text_input("Nomor/Kode Dokumen", value=str(data_row.get('Nomor Dokumen', '')))
+                            edited_subject = st.text_input("Perihal / Nama Barang", value=str(data_row.get('Perihal', '')))
+                            edited_description = st.text_area("Keterangan", value=str(data_row.get('Keterangan', '')))
+                            save_document = st.form_submit_button("Simpan perubahan", type="primary")
+
+                        if save_document:
+                            if not edited_number.strip() or not edited_subject.strip():
+                                st.error("Nomor Dokumen dan Perihal wajib diisi.")
+                            else:
+                                df_admin_data.loc[data_idx, 'Tanggal'] = edited_date.strip()
+                                df_admin_data.loc[data_idx, 'Nomor Dokumen'] = edited_number.strip()
+                                df_admin_data.loc[data_idx, 'Perihal'] = edited_subject.strip()
+                                df_admin_data.loc[data_idx, 'Keterangan'] = edited_description.strip()
+                                df_admin_data.to_excel(file_data, index=False)
+                                st.session_state.admin_edit_index = None
+                                st.success("Data dokumen berhasil diperbarui.")
+                                time.sleep(0.5)
+                                st.rerun()
+
+                        if st.button("Batal edit", key=f"cancel_admin_edit_{data_idx}"):
+                            st.session_state.admin_edit_index = None
+                            st.rerun()
+                    else:
+                        document_columns = st.columns([1.2, 2.5, 2.8, 1.8, 1.6, 2.5, 2.8])
+                        document_columns[0].write(str(data_row.get('Nomor Dokumen', '')))
+                        document_columns[1].write(str(data_row.get('Perihal', '')))
+                        document_columns[2].write(str(data_row.get('Keterangan', '')))
+                        document_columns[3].write(str(data_row.get('Oleh', '')))
+                        document_columns[4].write(str(data_row.get('Tanggal', '')))
+                        
+                        foto_path_admin = str(data_row.get('Foto_Berkas', '')).strip()
+                        document_columns[5].write(foto_path_admin if foto_path_admin not in ('', 'nan', 'None') else '-')
+                        
+                        action_columns = document_columns[6].columns(3)
+                        with action_columns[0]:
+                            if foto_path_admin and foto_path_admin not in ('nan', 'None', ''):
+                                if os.path.exists(foto_path_admin):
+                                    if st.button("👁️", key=f"admin_view_{data_idx}", help="Lihat Foto Berkas", use_container_width=True):
+                                        st.session_state.modal_image = (foto_path_admin, f"Berkas Dokumen: {data_row['Nomor Dokumen']}")
+                                else:
+                                    st.button("⚠️", key=f"admin_view_not_found_{data_idx}", help="File tidak ditemukan", disabled=True, use_container_width=True)
+                            else:
+                                st.button("✕", key=f"admin_view_empty_{data_idx}", help="Tidak ada file", disabled=True, use_container_width=True)
+                                
+                        with action_columns[1]:
+                            if st.button("✏️", key=f"admin_edit_{data_idx}", help="Edit Data", use_container_width=True):
+                                st.session_state.admin_edit_index = data_idx
+                                st.rerun()
+                        with action_columns[2]:
+                            if st.button("🗑️", key=f"admin_delete_{data_idx}", help="Hapus Data", use_container_width=True):
+                                df_admin_data = df_admin_data.drop(index=data_idx).reset_index(drop=True)
+                                df_admin_data.to_excel(file_data, index=False)
+                                st.success("Data dokumen berhasil dihapus.")
+                                time.sleep(0.5)
+                                st.rerun()
+                        
+                        if st.session_state.modal_image and st.session_state.modal_image[1] == f"Berkas Dokumen: {data_row['Nomor Dokumen']}":
+                            with st.container(border=True):
+                                st.image(st.session_state.modal_image[0], caption=st.session_state.modal_image[1], use_container_width=True)
+                                if st.button("✕ Tutup", key=f"close_admin_image_{data_idx}", use_container_width=True):
+                                    st.session_state.modal_image = None
+                                    st.rerun()
+                            st.divider()
+                        else:
+                            st.divider()
 
         st.stop()
 
@@ -415,7 +568,7 @@ foto_berkas = st.file_uploader(
 col_btn1, col_btn2 = st.columns(2)
 with col_btn1:
     if not is_editing:
-        if st.button("💾 Simpan ke Database", type="primary"):
+        if st.button("💾 Simpan ke Database", type="primary", use_container_width=True):
             if no_dokumen and perihal:
                 file_path_saved = ""
                 if foto_berkas is not None:
@@ -443,7 +596,7 @@ with col_btn1:
             else:
                 st.error("Mohon isi Nomor Dokumen dan Perihal.")
     else:
-        if st.button("🔄 Perbarui Data (Update)", type="primary"):
+        if st.button("🔄 Perbarui Data (Update)", type="primary", use_container_width=True):
             df_existing = pd.read_excel(file_data, dtype=str)
             idx = int(st.session_state.edit_index)
 
@@ -468,7 +621,7 @@ with col_btn1:
 
 with col_btn2:
     if is_editing:
-        if st.button("❌ Batal Edit"):
+        if st.button("❌ Batal Edit", use_container_width=True):
             st.session_state.edit_index = None
             st.session_state.next_user_menu = "Daftar Data Tersimpan & Aksi"
             st.rerun()
