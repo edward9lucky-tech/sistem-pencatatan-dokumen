@@ -1,22 +1,52 @@
+import os
 import random
 import urllib.parse
-import os
 import pandas as pd
 import streamlit as st
 
 # File database excel lokal
 USER_FILE = 'users.xlsx'
 
-# Pastikan file excel user ada
-if not os.path.exists(USER_FILE):
-  df_init = pd.DataFrame(
-      {'username': ['edward'], 'password': ['admin123'], 'no_wa': ['628...']}
-  )
-  df_init.to_excel(USER_FILE, index=False)
 
-
+# Fungsi load user dengan proteksi otomatis jika format kolom beda/kosong
 def load_users():
-  return pd.read_excel(USER_FILE, dtype=str)
+  if not os.path.exists(USER_FILE):
+    df_init = pd.DataFrame(
+        {
+            'username': ['edward'],
+            'password': ['admin123'],
+            'no_wa': ['628123456789'],
+        }
+    )
+    df_init.to_excel(USER_FILE, index=False)
+    return df_init
+
+  try:
+    df = pd.read_excel(USER_FILE, dtype=str)
+    # Cek apakah kolom yang dibutuhkan lengkap
+    required_cols = ['username', 'password', 'no_wa']
+    if not all(col in df.columns for col in required_cols):
+      # Jika tidak lengkap, buat ulang file default-nya
+      df_init = pd.DataFrame(
+          {
+              'username': ['edward'],
+              'password': ['admin123'],
+              'no_wa': ['628123456789'],
+          }
+      )
+      df_init.to_excel(USER_FILE, index=False)
+      return df_init
+    return df
+  except Exception:
+    df_init = pd.DataFrame(
+        {
+            'username': ['edward'],
+            'password': ['admin123'],
+            'no_wa': ['628123456789'],
+        }
+    )
+    df_init.to_excel(USER_FILE, index=False)
+    return df_init
 
 
 def save_user(username, password, no_wa):
@@ -66,7 +96,7 @@ else:
       user_row = df_users[df_users['username'] == username_input]
       if (
           not user_row.empty
-          and user_row.iloc[0]['password'] == password_input
+          and str(user_row.iloc[0]['password']).strip() == str(password_input).strip()
       ):
         st.session_state.logged_in = True
         st.session_state.username = username_input
