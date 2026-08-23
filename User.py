@@ -8,7 +8,6 @@ import streamlit as st
 USER_FILE = 'users.xlsx'
 
 
-# Fungsi load user dengan proteksi otomatis jika format kolom beda/kosong
 def load_users():
   if not os.path.exists(USER_FILE):
     df_init = pd.DataFrame(
@@ -23,10 +22,8 @@ def load_users():
 
   try:
     df = pd.read_excel(USER_FILE, dtype=str)
-    # Cek apakah kolom yang dibutuhkan lengkap
     required_cols = ['username', 'password', 'no_wa']
     if not all(col in df.columns for col in required_cols):
-      # Jika tidak lengkap, buat ulang file default-nya
       df_init = pd.DataFrame(
           {
               'username': ['edward'],
@@ -72,7 +69,6 @@ if 'temp_reg' not in st.session_state:
 if st.session_state.logged_in:
   st.success(f'Selamat datang, {st.session_state.username}!')
 
-  # Menu navigasi halaman utama
   st.page_link('pages/New.py', label='📂 Buka Menu Pencatatan & Dokumen')
 
   if st.button('Logout'):
@@ -93,17 +89,25 @@ else:
     password_input = st.text_input('Password', type='password')
 
     if st.button('Login'):
-      user_row = df_users[df_users['username'] == username_input]
-      if (
-          not user_row.empty
-          and str(user_row.iloc[0]['password']).strip() == str(password_input).strip()
-      ):
-        st.session_state.logged_in = True
-        st.session_state.username = username_input
-        st.success('Login Berhasil!')
-        st.rerun()
+      # Membersihkan spasi inputan
+      u_input = username_input.strip()
+      p_input = str(password_input).strip()
+
+      # Mencari kecocokan data secara fleksibel (mengabaikan huruf besar/kecil pada username)
+      df_users['clean_user'] = df_users['username'].astype(str).str.strip().str.lower()
+      user_row = df_users[df_users['clean_user'] == u_input.lower()]
+
+      if not user_row.empty:
+        db_pass = str(user_row.iloc[0]['password']).strip()
+        if db_pass == p_input:
+          st.session_state.logged_in = True
+          st.session_state.username = user_row.iloc[0]['username']
+          st.success('Login Berhasil!')
+          st.rerun()
+        else:
+          st.error('Password salah!')
       else:
-        st.error('Username atau Password salah!')
+        st.error('Username tidak ditemukan!')
 
   elif menu == 'Register / Daftar Akun':
     st.subheader('Daftar Akun Baru dengan Verifikasi WhatsApp')
@@ -114,21 +118,18 @@ else:
         'Nomor WhatsApp (Awali dengan 62, cth: 628123456789)'
     )
 
-    # Langkah 1: Kirim OTP
     if st.button('Kirim Kode OTP ke WhatsApp'):
       if reg_user and reg_pass and reg_wa:
-        if reg_user in df_users['username'].values:
+        if reg_user.strip() in df_users['username'].values:
           st.error('Username sudah digunakan!')
         else:
-          # Generate OTP 6 digit
           st.session_state.otp_code = str(random.randint(100000, 999999))
           st.session_state.temp_reg = {
-              'username': reg_user,
-              'password': reg_pass,
-              'no_wa': reg_wa,
+              'username': reg_user.strip(),
+              'password': reg_pass.strip(),
+              'no_wa': reg_wa.strip(),
           }
 
-          # Pesan WA
           pesan = (
               f'Halo {reg_user}, kode verifikasi OTP pendaftaran sistem Anda'
               f' adalah: *{st.session_state.otp_code}*. Jangan berikan ke'
@@ -145,16 +146,14 @@ else:
       else:
         st.warning('Harap isi semua kolom pendaftaran terlebih dahulu!')
 
-    # Langkah 2: Masukkan OTP dan Simpan
     st.write('---')
     otp_input = st.text_input('Masukkan 6 Digit Kode OTP yang Diterima di WA')
 
     if st.button('Verifikasi & Selesaikan Pendaftaran'):
       if (
           st.session_state.otp_code
-          and otp_input == st.session_state.otp_code
+          and otp_input.strip() == st.session_state.otp_code
       ):
-        # Simpan ke Excel/database lokal
         data = st.session_state.temp_reg
         save_user(data['username'], data['password'], data['no_wa'])
         st.success(
