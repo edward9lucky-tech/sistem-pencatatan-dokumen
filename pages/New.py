@@ -107,18 +107,17 @@ def render_saved_data():
                 st.success("Data berhasil dihapus!")
                 time.sleep(1)
                 st.rerun()
-        st.divider()
-
-    # Tampilkan modal image jika ada
-    if st.session_state.modal_image:
-        with st.container(border=True):
-            col1, col2 = st.columns([10, 1])
-            with col1:
+        
+        # Tampilkan gambar langsung di bawah baris jika modal_image sesuai dengan row ini
+        if st.session_state.modal_image and st.session_state.modal_image[1] == f"Berkas Dokumen: {row['Nomor Dokumen']}":
+            with st.container(border=True):
                 st.image(st.session_state.modal_image[0], caption=st.session_state.modal_image[1], use_container_width=True)
-            with col2:
-                if st.button("✕", key="modal_close_user", use_container_width=True):
+                if st.button("✕ Tutup", key=f"close_image_{i}", use_container_width=True):
                     st.session_state.modal_image = None
                     st.rerun()
+            st.divider()
+        else:
+            st.divider()
 
 # Sidebar Navigasi / Info Pengguna
 st.sidebar.title(f"Halo, {st.session_state.get('username', 'User')}!")
@@ -229,19 +228,17 @@ if current_role.lower() == 'superadmin':
                             st.success("Data dokumen berhasil dihapus.")
                             time.sleep(0.5)
                             st.rerun()
-                st.divider()
-
-            # Tampilkan modal image jika ada untuk admin
-            if st.session_state.modal_image:
-                st.divider()
-                with st.container(border=True):
-                    col1, col2 = st.columns([10, 1])
-                    with col1:
-                        st.image(st.session_state.modal_image[0], caption=st.session_state.modal_image[1], use_container_width=True)
-                    with col2:
-                        if st.button("✕", key="modal_close_admin", use_container_width=True):
-                            st.session_state.modal_image = None
-                            st.rerun()
+                    
+                    # Tampilkan gambar langsung di bawah baris jika modal_image sesuai dengan row ini
+                    if st.session_state.modal_image and st.session_state.modal_image[1] == f"Berkas Dokumen: {data_row['Nomor Dokumen']}":
+                        with st.container(border=True):
+                            st.image(st.session_state.modal_image[0], caption=st.session_state.modal_image[1], use_container_width=True)
+                            if st.button("✕ Tutup", key=f"close_admin_image_{data_idx}", use_container_width=True):
+                                st.session_state.modal_image = None
+                                st.rerun()
+                        st.divider()
+                    else:
+                        st.divider()
 
         st.stop()
 
