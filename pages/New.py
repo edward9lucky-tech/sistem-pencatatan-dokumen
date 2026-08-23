@@ -63,18 +63,17 @@ def render_saved_data():
         st.info("Belum ada data tersimpan.")
         return
 
-    table_columns = st.columns([1.4, 2.7, 3, 2, 1.8, 1.5, 3.2])
+    table_columns = st.columns([1.2, 2.5, 2.8, 1.8, 1.6, 2, 3])
     table_headers = [
         "Nomor Dokumen", "Perihal", "Keterangan", "Oleh",
-        "Tanggal", "Foto_Berkas",
+        "Tanggal", "Foto_Berkas", "Action"
     ]
     for header_column, header in zip(table_columns, table_headers):
         header_column.markdown(f"**{header}**")
-    table_columns[6].markdown("<div style='text-align:center'><strong>Action</strong></div>", unsafe_allow_html=True)
     st.divider()
 
     for i, row in df_tampil.iterrows():
-        document_columns = st.columns([1.4, 2.7, 3, 2, 1.8, 1.5, 3.2])
+        document_columns = st.columns([1.2, 2.5, 2.8, 1.8, 1.6, 2, 3])
         document_columns[0].write(str(row.get('Nomor Dokumen', '')))
         document_columns[1].write(str(row.get('Perihal', '')))
         document_columns[2].write(str(row.get('Keterangan', '')))
@@ -86,17 +85,17 @@ def render_saved_data():
         action_columns = document_columns[6].columns(3)
         with action_columns[0]:
             if foto_path and foto_path not in ('nan', 'None', '') and os.path.exists(foto_path):
-                if st.button("👁️ Lihat", key=f"view_{i}", help="Lihat Foto Berkas"):
+                if st.button("👁️", key=f"view_{i}", help="Lihat Foto Berkas", use_container_width=True):
                     st.session_state.modal_image = (foto_path, f"Berkas Dokumen: {row['Nomor Dokumen']}")
             else:
                 st.write('-')
         with action_columns[1]:
-            if st.button("✏️ Edit", key=f"edit_{i}", help="Edit Data"):
+            if st.button("✏️", key=f"edit_{i}", help="Edit Data", use_container_width=True):
                 st.session_state.edit_index = i
                 st.session_state.next_user_menu = "Tambah Data Baru"
                 st.rerun()
         with action_columns[2]:
-            if st.button("🗑️ Hapus", key=f"del_{i}", help="Hapus Data"):
+            if st.button("🗑️", key=f"del_{i}", help="Hapus Data", use_container_width=True):
                 df_tampil = df_tampil.drop(i).reset_index(drop=True)
                 df_tampil.to_excel(file_data, index=False)
                 st.success("Data berhasil dihapus!")
@@ -111,7 +110,7 @@ def render_saved_data():
             with col1:
                 st.image(st.session_state.modal_image[0], caption=st.session_state.modal_image[1], use_container_width=True)
             with col2:
-                if st.button("✕ Tutup"):
+                if st.button("✕", key="modal_close_user", use_container_width=True):
                     st.session_state.modal_image = None
                     st.rerun()
 
@@ -154,14 +153,13 @@ if current_role.lower() == 'superadmin':
         if df_admin_data.empty:
             st.info("Belum ada data dokumen yang diinput user.")
         else:
-            table_columns = st.columns([1.4, 2.7, 3, 2, 1.8, 1.8, 2.6])
+            table_columns = st.columns([1.2, 2.5, 2.8, 1.8, 1.6, 2, 3])
             table_headers = [
                 "Nomor Dokumen", "Perihal", "Keterangan", "Oleh",
-                "Tanggal", "Foto_Berkas",
+                "Tanggal", "Foto_Berkas", "Action"
             ]
             for header_column, header in zip(table_columns, table_headers):
                 header_column.markdown(f"**{header}**")
-            table_columns[6].markdown("<div style='text-align:center'><strong>Action</strong></div>", unsafe_allow_html=True)
             st.divider()
 
             for data_idx, data_row in df_admin_data.iterrows():
@@ -191,7 +189,7 @@ if current_role.lower() == 'superadmin':
                         st.session_state.admin_edit_index = None
                         st.rerun()
                 else:
-                    document_columns = st.columns([1.4, 2.7, 3, 2, 1.8, 1.8, 2.6])
+                    document_columns = st.columns([1.2, 2.5, 2.8, 1.8, 1.6, 2, 3])
                     document_columns[0].write(str(data_row.get('Nomor Dokumen', '')))
                     document_columns[1].write(str(data_row.get('Perihal', '')))
                     document_columns[2].write(str(data_row.get('Keterangan', '')))
@@ -205,16 +203,16 @@ if current_role.lower() == 'superadmin':
                     action_columns = document_columns[6].columns(3)
                     with action_columns[0]:
                         if foto_path_admin and foto_path_admin not in ('nan', 'None', '') and os.path.exists(foto_path_admin):
-                            if st.button("👁️ Lihat", key=f"admin_view_{data_idx}", help="Lihat Foto Berkas"):
+                            if st.button("👁️", key=f"admin_view_{data_idx}", help="Lihat Foto Berkas", use_container_width=True):
                                 st.session_state.modal_image = (foto_path_admin, f"Berkas Dokumen: {data_row['Nomor Dokumen']}")
                         else:
                             st.write('-')
                     with action_columns[1]:
-                        if st.button("✏️ Edit", key=f"admin_edit_{data_idx}"):
+                        if st.button("✏️", key=f"admin_edit_{data_idx}", help="Edit Data", use_container_width=True):
                             st.session_state.admin_edit_index = data_idx
                             st.rerun()
                     with action_columns[2]:
-                        if st.button("🗑️ Hapus", key=f"admin_delete_{data_idx}"):
+                        if st.button("🗑️", key=f"admin_delete_{data_idx}", help="Hapus Data", use_container_width=True):
                             df_admin_data = df_admin_data.drop(index=data_idx).reset_index(drop=True)
                             df_admin_data.to_excel(file_data, index=False)
                             st.success("Data dokumen berhasil dihapus.")
@@ -230,7 +228,7 @@ if current_role.lower() == 'superadmin':
                     with col1:
                         st.image(st.session_state.modal_image[0], caption=st.session_state.modal_image[1], use_container_width=True)
                     with col2:
-                        if st.button("✕ Tutup", key="modal_close_admin"):
+                        if st.button("✕", key="modal_close_admin", use_container_width=True):
                             st.session_state.modal_image = None
                             st.rerun()
 
