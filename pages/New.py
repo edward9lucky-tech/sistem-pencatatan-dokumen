@@ -34,6 +34,8 @@ if "admin_edit_index" not in st.session_state:
     st.session_state.admin_edit_index = None
 if "document_form_version" not in st.session_state:
     st.session_state.document_form_version = 0
+if "modal_image" not in st.session_state:
+    st.session_state.modal_image = None
 
 # Load user metadata
 if os.path.exists(USER_FILE):
@@ -83,24 +85,35 @@ def render_saved_data():
 
         action_columns = document_columns[6].columns(3)
         with action_columns[0]:
-            if foto_path and foto_path not in ('nan', 'None') and os.path.exists(foto_path):
-                if st.button("Lihat", key=f"view_{i}", help="Lihat Foto Berkas"):
-                    st.image(foto_path, caption=f"Berkas Dokumen: {row['Nomor Dokumen']}")
+            if foto_path and foto_path not in ('nan', 'None', '') and os.path.exists(foto_path):
+                if st.button("👁️ Lihat", key=f"view_{i}", help="Lihat Foto Berkas"):
+                    st.session_state.modal_image = (foto_path, f"Berkas Dokumen: {row['Nomor Dokumen']}")
             else:
                 st.write('-')
         with action_columns[1]:
-            if st.button("Edit", key=f"edit_{i}", help="Edit Data"):
+            if st.button("✏️ Edit", key=f"edit_{i}", help="Edit Data"):
                 st.session_state.edit_index = i
                 st.session_state.next_user_menu = "Tambah Data Baru"
                 st.rerun()
         with action_columns[2]:
-            if st.button("Hapus", key=f"del_{i}", help="Hapus Data"):
+            if st.button("🗑️ Hapus", key=f"del_{i}", help="Hapus Data"):
                 df_tampil = df_tampil.drop(i).reset_index(drop=True)
                 df_tampil.to_excel(file_data, index=False)
                 st.success("Data berhasil dihapus!")
                 time.sleep(1)
                 st.rerun()
         st.divider()
+
+    # Tampilkan modal image jika ada
+    if st.session_state.modal_image:
+        with st.container(border=True):
+            col1, col2 = st.columns([10, 1])
+            with col1:
+                st.image(st.session_state.modal_image[0], caption=st.session_state.modal_image[1], use_container_width=True)
+            with col2:
+                if st.button("✕ Tutup"):
+                    st.session_state.modal_image = None
+                    st.rerun()
 
 # Sidebar Navigasi / Info Pengguna
 st.sidebar.title(f"Halo, {st.session_state.get('username', 'User')}!")
@@ -184,20 +197,42 @@ if current_role.lower() == 'superadmin':
                     document_columns[2].write(str(data_row.get('Keterangan', '')))
                     document_columns[3].write(str(data_row.get('Oleh', '')))
                     document_columns[4].write(str(data_row.get('Tanggal', '')))
-                    document_columns[5].write(str(data_row.get('Foto_Berkas', '')))
-                    action_columns = document_columns[6].columns(2)
+                    
+                    # Tampilkan foto_berkas dengan lebih baik
+                    foto_path_admin = str(data_row.get('Foto_Berkas', ''))
+                    document_columns[5].write(foto_path_admin if foto_path_admin not in ('', 'nan', 'None') else '-')
+                    
+                    action_columns = document_columns[6].columns(3)
                     with action_columns[0]:
-                        if st.button("Edit", key=f"admin_edit_{data_idx}"):
+                        if foto_path_admin and foto_path_admin not in ('nan', 'None', '') and os.path.exists(foto_path_admin):
+                            if st.button("👁️ Lihat", key=f"admin_view_{data_idx}", help="Lihat Foto Berkas"):
+                                st.session_state.modal_image = (foto_path_admin, f"Berkas Dokumen: {data_row['Nomor Dokumen']}")
+                        else:
+                            st.write('-')
+                    with action_columns[1]:
+                        if st.button("✏️ Edit", key=f"admin_edit_{data_idx}"):
                             st.session_state.admin_edit_index = data_idx
                             st.rerun()
-                    with action_columns[1]:
-                        if st.button("Hapus", key=f"admin_delete_{data_idx}"):
+                    with action_columns[2]:
+                        if st.button("🗑️ Hapus", key=f"admin_delete_{data_idx}"):
                             df_admin_data = df_admin_data.drop(index=data_idx).reset_index(drop=True)
                             df_admin_data.to_excel(file_data, index=False)
                             st.success("Data dokumen berhasil dihapus.")
                             time.sleep(0.5)
                             st.rerun()
                 st.divider()
+
+            # Tampilkan modal image jika ada untuk admin
+            if st.session_state.modal_image:
+                st.divider()
+                with st.container(border=True):
+                    col1, col2 = st.columns([10, 1])
+                    with col1:
+                        st.image(st.session_state.modal_image[0], caption=st.session_state.modal_image[1], use_container_width=True)
+                    with col2:
+                        if st.button("✕ Tutup", key="modal_close_admin"):
+                            st.session_state.modal_image = None
+                            st.rerun()
 
         st.stop()
 
@@ -212,14 +247,14 @@ if current_role.lower() == 'superadmin':
             with col1:
                 st.write(f"**{row['username']}** | WA: {row['no_wa']}")
             with col2:
-                if st.button("Accept", key=f"accept_{idx}"):
+                if st.button("✅ Accept", key=f"accept_{idx}"):
                     df_users.loc[idx, 'status'] = 'approved'
                     df_users.to_excel(USER_FILE, index=False)
                     st.success(f"User {row['username']} diterima.")
                     time.sleep(0.5)
                     st.rerun()
             with col3:
-                if st.button("Reject", key=f"reject_{idx}"):
+                if st.button("❌ Reject", key=f"reject_{idx}"):
                     df_users = df_users.drop(idx)
                     df_users.to_excel(USER_FILE, index=False)
                     st.warning(f"User {row['username']} ditolak.")
@@ -306,13 +341,13 @@ if current_role.lower() == 'superadmin':
                 user_columns[3].write(str(row['role']))
                 user_actions = user_columns[4].columns(2)
                 with user_actions[0]:
-                    if st.button("Edit", key=f"edit_user_button_{idx}"):
+                    if st.button("✏️ Edit", key=f"edit_user_button_{idx}"):
                         st.session_state[f'editing_user_{idx}'] = True
                         st.rerun()
                 with user_actions[1]:
                     if is_current_user:
                         st.caption("Aktif")
-                    elif st.button("Hapus", key=f"delete_user_{idx}", type="secondary"):
+                    elif st.button("🗑️ Hapus", key=f"delete_user_{idx}", type="secondary"):
                         df_users = df_users.drop(index=idx).reset_index(drop=True)
                         df_users.to_excel(USER_FILE, index=False)
                         st.success(f"User {username} berhasil dihapus.")
@@ -374,7 +409,7 @@ foto_berkas = st.file_uploader(
 col_btn1, col_btn2 = st.columns(2)
 with col_btn1:
     if not is_editing:
-        if st.button("Simpan ke Database", type="primary"):
+        if st.button("💾 Simpan ke Database", type="primary"):
             if no_dokumen and perihal:
                 file_path_saved = ""
                 if foto_berkas is not None:
@@ -402,7 +437,7 @@ with col_btn1:
             else:
                 st.error("Mohon isi Nomor Dokumen dan Perihal.")
     else:
-        if st.button("Perbarui Data (Update)", type="primary"):
+        if st.button("🔄 Perbarui Data (Update)", type="primary"):
             df_existing = pd.read_excel(file_data, dtype=str)
             idx = int(st.session_state.edit_index)
 
@@ -427,7 +462,7 @@ with col_btn1:
 
 with col_btn2:
     if is_editing:
-        if st.button("Batal Edit"):
+        if st.button("❌ Batal Edit"):
             st.session_state.edit_index = None
             st.session_state.next_user_menu = "Daftar Data Tersimpan & Aksi"
             st.rerun()
