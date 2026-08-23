@@ -63,7 +63,7 @@ def render_saved_data():
         st.info("Belum ada data tersimpan.")
         return
 
-    table_columns = st.columns([1.2, 2.5, 2.8, 1.8, 1.6, 2, 3])
+    table_columns = st.columns([1.2, 2.5, 2.8, 1.8, 1.6, 2.5, 2.8])
     table_headers = [
         "Nomor Dokumen", "Perihal", "Keterangan", "Oleh",
         "Tanggal", "Foto_Berkas", "Action"
@@ -73,22 +73,28 @@ def render_saved_data():
     st.divider()
 
     for i, row in df_tampil.iterrows():
-        document_columns = st.columns([1.2, 2.5, 2.8, 1.8, 1.6, 2, 3])
+        document_columns = st.columns([1.2, 2.5, 2.8, 1.8, 1.6, 2.5, 2.8])
         document_columns[0].write(str(row.get('Nomor Dokumen', '')))
         document_columns[1].write(str(row.get('Perihal', '')))
         document_columns[2].write(str(row.get('Keterangan', '')))
         document_columns[3].write(str(row.get('Oleh', '')))
         document_columns[4].write(str(row.get('Tanggal', '')))
-        foto_path = str(row.get("Foto_Berkas", ''))
+        foto_path = str(row.get("Foto_Berkas", '')).strip()
         document_columns[5].write(foto_path if foto_path not in ('', 'nan', 'None') else '-')
 
         action_columns = document_columns[6].columns(3)
         with action_columns[0]:
-            if foto_path and foto_path not in ('nan', 'None', '') and os.path.exists(foto_path):
-                if st.button("👁️", key=f"view_{i}", help="Lihat Foto Berkas", use_container_width=True):
-                    st.session_state.modal_image = (foto_path, f"Berkas Dokumen: {row['Nomor Dokumen']}")
+            # Tombol view SELALU ditampilkan, dengan validasi lebih dalam
+            if foto_path and foto_path not in ('nan', 'None', ''):
+                if os.path.exists(foto_path):
+                    if st.button("👁️", key=f"view_{i}", help="Lihat Foto Berkas", use_container_width=True):
+                        st.session_state.modal_image = (foto_path, f"Berkas Dokumen: {row['Nomor Dokumen']}")
+                else:
+                    # File tidak ditemukan tapi path ada
+                    st.button("⚠️", key=f"view_not_found_{i}", help="File tidak ditemukan", disabled=True, use_container_width=True)
             else:
-                st.write('-')
+                st.button("✕", key=f"view_empty_{i}", help="Tidak ada file", disabled=True, use_container_width=True)
+                
         with action_columns[1]:
             if st.button("✏️", key=f"edit_{i}", help="Edit Data", use_container_width=True):
                 st.session_state.edit_index = i
@@ -153,7 +159,7 @@ if current_role.lower() == 'superadmin':
         if df_admin_data.empty:
             st.info("Belum ada data dokumen yang diinput user.")
         else:
-            table_columns = st.columns([1.2, 2.5, 2.8, 1.8, 1.6, 2, 3])
+            table_columns = st.columns([1.2, 2.5, 2.8, 1.8, 1.6, 2.5, 2.8])
             table_headers = [
                 "Nomor Dokumen", "Perihal", "Keterangan", "Oleh",
                 "Tanggal", "Foto_Berkas", "Action"
@@ -189,7 +195,7 @@ if current_role.lower() == 'superadmin':
                         st.session_state.admin_edit_index = None
                         st.rerun()
                 else:
-                    document_columns = st.columns([1.2, 2.5, 2.8, 1.8, 1.6, 2, 3])
+                    document_columns = st.columns([1.2, 2.5, 2.8, 1.8, 1.6, 2.5, 2.8])
                     document_columns[0].write(str(data_row.get('Nomor Dokumen', '')))
                     document_columns[1].write(str(data_row.get('Perihal', '')))
                     document_columns[2].write(str(data_row.get('Keterangan', '')))
@@ -197,16 +203,21 @@ if current_role.lower() == 'superadmin':
                     document_columns[4].write(str(data_row.get('Tanggal', '')))
                     
                     # Tampilkan foto_berkas dengan lebih baik
-                    foto_path_admin = str(data_row.get('Foto_Berkas', ''))
+                    foto_path_admin = str(data_row.get('Foto_Berkas', '')).strip()
                     document_columns[5].write(foto_path_admin if foto_path_admin not in ('', 'nan', 'None') else '-')
                     
                     action_columns = document_columns[6].columns(3)
                     with action_columns[0]:
-                        if foto_path_admin and foto_path_admin not in ('nan', 'None', '') and os.path.exists(foto_path_admin):
-                            if st.button("👁️", key=f"admin_view_{data_idx}", help="Lihat Foto Berkas", use_container_width=True):
-                                st.session_state.modal_image = (foto_path_admin, f"Berkas Dokumen: {data_row['Nomor Dokumen']}")
+                        # Tombol view SELALU ditampilkan untuk admin
+                        if foto_path_admin and foto_path_admin not in ('nan', 'None', ''):
+                            if os.path.exists(foto_path_admin):
+                                if st.button("👁️", key=f"admin_view_{data_idx}", help="Lihat Foto Berkas", use_container_width=True):
+                                    st.session_state.modal_image = (foto_path_admin, f"Berkas Dokumen: {data_row['Nomor Dokumen']}")
+                            else:
+                                st.button("⚠️", key=f"admin_view_not_found_{data_idx}", help="File tidak ditemukan", disabled=True, use_container_width=True)
                         else:
-                            st.write('-')
+                            st.button("✕", key=f"admin_view_empty_{data_idx}", help="Tidak ada file", disabled=True, use_container_width=True)
+                            
                     with action_columns[1]:
                         if st.button("✏️", key=f"admin_edit_{data_idx}", help="Edit Data", use_container_width=True):
                             st.session_state.admin_edit_index = data_idx
